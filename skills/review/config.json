@@ -1,0 +1,6 @@
+{
+  "name": "review",
+  "description": "Code review: check for bugs, security issues, performance, and convention violations",
+  "type": "prompt",
+  "triggers": ["review", "code review", "check code", "audit"]
+}

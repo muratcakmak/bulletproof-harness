@@ -1,0 +1,6 @@
+{
+  "name": "deploy-check",
+  "description": "Pre-deployment verification: build, tests, secrets scan, Docker check",
+  "type": "hybrid",
+  "triggers": ["deploy", "pre-deploy", "deploy check", "release check"]
+}

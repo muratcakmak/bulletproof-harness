@@ -1,0 +1,6 @@
+{
+  "name": "refactor",
+  "description": "Analyze and refactor code for readability, performance, and maintainability",
+  "type": "prompt",
+  "triggers": ["refactor", "clean up", "improve code"]
+}

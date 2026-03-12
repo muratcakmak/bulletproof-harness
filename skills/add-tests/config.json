@@ -1,0 +1,6 @@
+{
+  "name": "add-tests",
+  "description": "Write comprehensive test coverage for existing code",
+  "type": "prompt",
+  "triggers": ["test", "coverage", "add tests", "write tests"]
+}
