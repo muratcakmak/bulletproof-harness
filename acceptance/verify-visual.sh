@@ -23,7 +23,7 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TICKET_ID="${1:-}"
 TICKET_FILE="${2:-}"
 
-APP_URL="${APP_URL:-http://localhost:${DEV_PORT:-5173}}"
+APP_URL="${APP_URL:-http://localhost:${DEV_PORT:-8788}}"
 
 if [ -z "$TICKET_FILE" ] || [ ! -f "$TICKET_FILE" ]; then
   echo "[ERROR] Ticket file not found"
@@ -82,4 +82,5 @@ echo "  [visual] To verify manually: open $APP_URL and check the criteria above"
 echo "  [visual] For automated verification, use the Stop hook with type: 'agent'"
 
 # Visual checks pass if server is reachable — deep verification requires Chrome MCP
+# Note: Chrome MCP is optional for deep visual verification (screenshot + element checks)
 exit 0

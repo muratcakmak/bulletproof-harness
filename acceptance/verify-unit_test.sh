@@ -18,12 +18,20 @@ if [ -f "pnpm-lock.yaml" ]; then PM="pnpm"
 elif [ -f "bun.lockb" ] || [ -f "bun.lock" ]; then PM="bun"
 elif [ -f "yarn.lock" ]; then PM="yarn"
 elif [ -f "package.json" ]; then PM="npm"
-else PM=""; fi
+else
+  echo "  [unit_test] No package.json found"
+  exit 0
+fi
+
+# --- Detect @cloudflare/vitest-pool-workers ---
+if [ -f "package.json" ] && jq -e '.devDependencies["@cloudflare/vitest-pool-workers"] // .dependencies["@cloudflare/vitest-pool-workers"]' package.json &>/dev/null; then
+  echo "  [unit_test] Detected @cloudflare/vitest-pool-workers — tests run in Workers runtime"
+fi
 
 # --- Extract specific test files from ticket (if mentioned) ---
 SPECIFIC_TESTS=""
 if [ -n "$TICKET_FILE" ] && [ -f "$TICKET_FILE" ]; then
-  SPECIFIC_TESTS=$(grep -oP '\S+\.(test|spec)\.(ts|tsx|js|jsx|py)' "$TICKET_FILE" 2>/dev/null | sort -u || echo "")
+  SPECIFIC_TESTS=$(grep -oP '\S+\.(test|spec)\.(ts|tsx|js|jsx)' "$TICKET_FILE" 2>/dev/null | sort -u || echo "")
 fi
 
 echo "  [unit_test] Running tests..."
@@ -38,21 +46,9 @@ if [ -n "$SPECIFIC_TESTS" ]; then
 
     if [ -n "$FOUND" ]; then
       echo "  [unit_test] Running: $FOUND"
-
-      case "$PM" in
-        npm|pnpm|yarn|bun)
-          if ! $PM run test -- "$FOUND" 2>&1 | tail -10; then
-            ERRORS=$((ERRORS + 1))
-          fi
-          ;;
-        *)
-          if command -v pytest &>/dev/null && [[ "$FOUND" == *.py ]]; then
-            if ! pytest "$FOUND" 2>&1 | tail -10; then
-              ERRORS=$((ERRORS + 1))
-            fi
-          fi
-          ;;
-      esac
+      if ! $PM run test -- "$FOUND" 2>&1 | tail -10; then
+        ERRORS=$((ERRORS + 1))
+      fi
     else
       echo "  [unit_test] File not found: $TEST_FILE (may not be created yet)"
       ERRORS=$((ERRORS + 1))
@@ -65,31 +61,15 @@ if [ -n "$SPECIFIC_TESTS" ]; then
   fi
 else
   # Run full test suite
-  case "$PM" in
-    npm|pnpm|yarn|bun)
-      if jq -e '.scripts.test' package.json &>/dev/null; then
-        if ! $PM run test 2>&1 | tail -15; then
-          echo "  [unit_test] Test suite failed"
-          exit 1
-        fi
-      else
-        echo "  [unit_test] No test script in package.json"
-        exit 0
-      fi
-      ;;
-    *)
-      if command -v pytest &>/dev/null; then
-        if ! pytest 2>&1 | tail -15; then exit 1; fi
-      elif [ -f "Cargo.toml" ]; then
-        if ! cargo test 2>&1 | tail -15; then exit 1; fi
-      elif [ -f "go.mod" ]; then
-        if ! go test ./... 2>&1 | tail -15; then exit 1; fi
-      else
-        echo "  [unit_test] No test runner found"
-        exit 0
-      fi
-      ;;
-  esac
+  if jq -e '.scripts.test' package.json &>/dev/null; then
+    if ! $PM run test 2>&1 | tail -15; then
+      echo "  [unit_test] Test suite failed"
+      exit 1
+    fi
+  else
+    echo "  [unit_test] No test script in package.json"
+    exit 0
+  fi
 fi
 
 echo "  [unit_test] All tests passed"

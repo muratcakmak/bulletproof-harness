@@ -22,12 +22,6 @@ elif [ -f "yarn.lock" ]; then
   PM="yarn"
 elif [ -f "package.json" ]; then
   PM="npm"
-elif [ -f "Cargo.toml" ]; then
-  PM="cargo"
-elif [ -f "go.mod" ]; then
-  PM="go"
-elif [ -f "requirements.txt" ] || [ -f "pyproject.toml" ]; then
-  PM="python"
 else
   echo "[SKIP] No recognized project configuration found"
   exit 0
@@ -35,104 +29,71 @@ fi
 
 ERRORS=0
 
+# --- Wrangler env types (before type-check) ---
+if [ -f "wrangler.toml" ] || [ -f "wrangler.jsonc" ] || [ -f "wrangler.json" ]; then
+  if command -v wrangler &>/dev/null || [ -f "node_modules/.bin/wrangler" ]; then
+    echo "  [build] Regenerating Cloudflare env types..."
+    if ! npx wrangler types 2>&1 | tail -5; then
+      echo "  [build] Warning: wrangler types failed (non-blocking)"
+    fi
+  fi
+fi
+
 # --- Type Check ---
 echo "  [build] Running type-check..."
 
-case "$PM" in
-  npm|pnpm|yarn|bun)
-    # Check for type-check script
-    if jq -e '.scripts["type-check"]' package.json &>/dev/null; then
-      if ! $PM run type-check 2>&1 | tail -5; then ERRORS=$((ERRORS + 1)); fi
-    elif jq -e '.scripts["typecheck"]' package.json &>/dev/null; then
-      if ! $PM run typecheck 2>&1 | tail -5; then ERRORS=$((ERRORS + 1)); fi
-    elif [ -f "tsconfig.json" ]; then
-      if ! npx tsc --noEmit 2>&1 | tail -10; then ERRORS=$((ERRORS + 1)); fi
-    else
-      echo "  [build] No TypeScript config found, skipping type-check"
-    fi
-    ;;
-  cargo)
-    if ! cargo check 2>&1 | tail -5; then ERRORS=$((ERRORS + 1)); fi
-    ;;
-  go)
-    if ! go vet ./... 2>&1 | tail -5; then ERRORS=$((ERRORS + 1)); fi
-    ;;
-  python)
-    if command -v mypy &>/dev/null; then
-      if ! mypy . 2>&1 | tail -5; then ERRORS=$((ERRORS + 1)); fi
-    fi
-    ;;
-esac
+# Check for type-check script
+if jq -e '.scripts["type-check"]' package.json &>/dev/null; then
+  if ! $PM run type-check 2>&1 | tail -5; then ERRORS=$((ERRORS + 1)); fi
+elif jq -e '.scripts["typecheck"]' package.json &>/dev/null; then
+  if ! $PM run typecheck 2>&1 | tail -5; then ERRORS=$((ERRORS + 1)); fi
+elif [ -f "tsconfig.json" ]; then
+  if ! npx tsc --noEmit 2>&1 | tail -10; then ERRORS=$((ERRORS + 1)); fi
+else
+  echo "  [build] No TypeScript config found, skipping type-check"
+fi
 
 # --- Lint ---
 echo "  [build] Running linter..."
 
-case "$PM" in
-  npm|pnpm|yarn|bun)
-    if jq -e '.scripts.lint' package.json &>/dev/null; then
-      if ! $PM run lint 2>&1 | tail -5; then ERRORS=$((ERRORS + 1)); fi
-    else
-      echo "  [build] No lint script found, skipping"
-    fi
-    ;;
-  cargo)
-    if ! cargo clippy 2>&1 | tail -5; then ERRORS=$((ERRORS + 1)); fi
-    ;;
-  go)
-    if command -v golangci-lint &>/dev/null; then
-      if ! golangci-lint run 2>&1 | tail -5; then ERRORS=$((ERRORS + 1)); fi
-    fi
-    ;;
-  python)
-    if command -v ruff &>/dev/null; then
-      if ! ruff check . 2>&1 | tail -5; then ERRORS=$((ERRORS + 1)); fi
-    fi
-    ;;
-esac
+if jq -e '.scripts.lint' package.json &>/dev/null; then
+  if ! $PM run lint 2>&1 | tail -5; then ERRORS=$((ERRORS + 1)); fi
+else
+  echo "  [build] No lint script found, skipping"
+fi
 
 # --- Build ---
 echo "  [build] Running build..."
 
-case "$PM" in
-  npm|pnpm|yarn|bun)
-    if jq -e '.scripts.build' package.json &>/dev/null; then
-      if ! $PM run build 2>&1 | tail -5; then ERRORS=$((ERRORS + 1)); fi
+if jq -e '.scripts.build' package.json &>/dev/null; then
+  if ! $PM run build 2>&1 | tail -5; then ERRORS=$((ERRORS + 1)); fi
+fi
+
+# --- Wrangler deploy dry-run (after build) ---
+if [ -f "wrangler.toml" ] || [ -f "wrangler.jsonc" ] || [ -f "wrangler.json" ]; then
+  if command -v wrangler &>/dev/null || [ -f "node_modules/.bin/wrangler" ]; then
+    echo "  [build] Running Wrangler deploy dry-run..."
+    if ! npx wrangler deploy --dry-run 2>&1 | tail -5; then
+      # Try Pages deploy if standard deploy fails
+      if ! npx wrangler pages deploy dist --dry-run 2>&1 | tail -5; then
+        echo "  [build] Warning: wrangler deploy dry-run failed"
+        ERRORS=$((ERRORS + 1))
+      fi
     fi
-    ;;
-  cargo)
-    if ! cargo build 2>&1 | tail -5; then ERRORS=$((ERRORS + 1)); fi
-    ;;
-  go)
-    if ! go build ./... 2>&1 | tail -5; then ERRORS=$((ERRORS + 1)); fi
-    ;;
-esac
+  fi
+fi
 
 # --- Tests ---
 echo "  [build] Running tests..."
 
-case "$PM" in
-  npm|pnpm|yarn|bun)
-    if jq -e '.scripts.test' package.json &>/dev/null; then
-      TEST_OUTPUT=$($PM run test 2>&1 || true)
-      EXIT_CODE=$?
-      echo "$TEST_OUTPUT" | tail -10
-      if [ $EXIT_CODE -ne 0 ]; then ERRORS=$((ERRORS + 1)); fi
-    else
-      echo "  [build] No test script found, skipping"
-    fi
-    ;;
-  cargo)
-    if ! cargo test 2>&1 | tail -10; then ERRORS=$((ERRORS + 1)); fi
-    ;;
-  go)
-    if ! go test ./... 2>&1 | tail -10; then ERRORS=$((ERRORS + 1)); fi
-    ;;
-  python)
-    if command -v pytest &>/dev/null; then
-      if ! pytest 2>&1 | tail -10; then ERRORS=$((ERRORS + 1)); fi
-    fi
-    ;;
-esac
+if jq -e '.scripts.test' package.json &>/dev/null; then
+  TEST_OUTPUT=$($PM run test 2>&1 || true)
+  EXIT_CODE=$?
+  echo "$TEST_OUTPUT" | tail -10
+  if [ $EXIT_CODE -ne 0 ]; then ERRORS=$((ERRORS + 1)); fi
+else
+  echo "  [build] No test script found, skipping"
+fi
 
 if [ "$ERRORS" -gt 0 ]; then
   echo "  [build] $ERRORS check(s) failed"

@@ -16,7 +16,7 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TICKET_ID="${1:-}"
 TICKET_FILE="${2:-}"
 
-APP_URL="${APP_URL:-http://localhost:${DEV_PORT:-5173}}"
+APP_URL="${APP_URL:-http://localhost:${DEV_PORT:-8788}}"
 
 if [ -z "$TICKET_FILE" ] || [ ! -f "$TICKET_FILE" ]; then
   echo "[ERROR] Ticket file not found"

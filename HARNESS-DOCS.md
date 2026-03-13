@@ -2,7 +2,7 @@
 
 **Autonomous ticket-driven development orchestrator for Claude Code.**
 
-Bulletproof Harness is a general-purpose framework that turns any web app project into a structured, autonomous build pipeline. It gives Claude Code persistent memory across sessions, a ticket queue with dependency resolution, enforced acceptance criteria, and Claude Code hooks that prevent premature completion. It works for any tech stack — TypeScript, Python, Go, Rust, or anything with a build step.
+Bulletproof Harness is a Cloudflare-native framework for Pages + Functions + D1 + Durable Objects projects. It gives Claude Code persistent memory across sessions, a ticket queue with dependency resolution, enforced acceptance criteria, and Claude Code hooks that prevent premature completion. Purpose-built for the Cloudflare stack with Wrangler integration.
 
 ---
 
@@ -65,7 +65,8 @@ The harness is built on three pillars that work together through Claude Code hoo
 │  4-layer    │  markdown    │   build / api /     │
 │  persistent │  queue +     │   unit_test /       │
 │  searchable │  auto-chain  │   visual /          │
-│             │              │   functional        │
+│             │              │   functional /      │
+│             │              │   worker            │
 ├─────────────┴──────────────┴────────────────────┤
 │              CLAUDE CODE HOOKS                   │
 │  SessionStart → PostToolUse → Stop → PreCompact  │
@@ -81,6 +82,7 @@ The harness is built on three pillars that work together through Claude Code hoo
 ### Prerequisites
 
 - Node.js 18+
+- Wrangler CLI (`npm i -g wrangler`)
 - Claude Code CLI (`npm i -g @anthropic-ai/claude-code`)
 - jq (for shell scripts)
 - bash 4+
@@ -499,20 +501,15 @@ Dependencies are stored as numeric references (e.g., `"depends_on": ["1", "2"]`)
 
 ## Acceptance Criteria
 
-Every ticket has acceptance criteria that must pass before the ticket can be marked done. The harness supports five AC types:
+Every ticket has acceptance criteria that must pass before the ticket can be marked done. The harness supports six AC types:
 
 ### `build`
 
-Runs type-check, linter, and test suite. Auto-detects package manager:
-
-- npm/pnpm/yarn/bun projects: `tsc --noEmit` + `npm test`
-- Cargo projects: `cargo build --release` + `cargo test`
-- Go projects: `go build ./...` + `go test ./...`
-- Python projects: `python -m py_compile` + `pytest`
+Runs type-check, linter, build, and test suite. Auto-detects package manager (pnpm/bun/yarn/npm). If a `wrangler.toml` is present, also runs `wrangler types` before type-check and `wrangler deploy --dry-run` after build.
 
 ### `api`
 
-Parses AC lines for HTTP method, path, and expected status code. Curls each endpoint and checks the response. Assumes a dev server is running on localhost.
+Parses AC lines for HTTP method, path, and expected status code. Curls each endpoint and checks the response. Assumes a dev server is running on localhost:8788 (Wrangler default).
 
 Example AC line: `GET /api/users/123 returns 200 + JSON`
 
@@ -527,6 +524,16 @@ Generates a verification plan for Chrome MCP integration. Outputs instructions f
 ### `functional`
 
 Generates a click-through verification plan for Chrome MCP. Outputs flow descriptions: navigate to page, fill form, click button, verify result.
+
+### `worker`
+
+Cloudflare-specific verification. Validates:
+1. `wrangler.toml` / `wrangler.jsonc` / `wrangler.json` exists
+2. `npx wrangler types` succeeds (generates env types)
+3. `npx tsc --noEmit` passes
+4. `npx wrangler deploy --dry-run` succeeds
+5. If D1 bindings configured → `migrations/` dir has non-empty `.sql` files
+6. If DO bindings configured → source files export the configured class names
 
 ### Running verification
 
@@ -594,7 +601,7 @@ harness/skills/my-skill/
 | `refactor`     | prompt | Analyze code and suggest refactoring improvements              |
 | `add-tests`    | prompt | Generate comprehensive tests for existing code                 |
 | `review`       | prompt | Code review with security, performance, and style checks       |
-| `deploy-check` | hybrid | Pre-deployment verification: build, tests, secrets, Docker     |
+| `deploy-check` | hybrid | Pre-deployment verification for Cloudflare: build, tests, wrangler, D1, DO |
 
 ### Skill types
 
@@ -730,7 +737,7 @@ Size: Large
 |-----------|--------------------------------------------------------------------|
 | `Summary` | 1-2 sentence description of what to build                         |
 | `Files`   | Comma-separated list of files to create or modify                  |
-| `AC`      | Comma-separated AC types: build, api, unit_test, visual, functional|
+| `AC`      | Comma-separated AC types: build, api, unit_test, visual, functional, worker |
 | `Depends` | Task numbers this depends on (or "none")                           |
 | `Size`    | Small (1h), Medium (2-3h), or Large (3h+)                          |
 
@@ -783,7 +790,8 @@ project-root/
     │   ├── verify-api.sh                # curl endpoints
     │   ├── verify-visual.sh             # Chrome MCP screenshot
     │   ├── verify-functional.sh         # Chrome MCP click-through
-    │   └── verify-unit_test.sh          # Run specific test files
+    │   ├── verify-unit_test.sh          # Run specific test files
+    │   └── verify-worker.sh             # Cloudflare Worker/Pages checks
     ├── skills/
     │   ├── refactor/                    # Built-in: code cleanup
     │   ├── add-tests/                   # Built-in: test generation

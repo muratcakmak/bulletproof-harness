@@ -84,6 +84,13 @@ echo -e "  ${GREEN}✓${NC} node $(node -v)"
 echo -e "  ${GREEN}✓${NC} npm $(npm -v)"
 echo -e "  ${GREEN}✓${NC} jq $(jq --version)"
 
+# Check for wrangler (recommended)
+if command -v wrangler &>/dev/null; then
+  echo -e "  ${GREEN}✓${NC} wrangler CLI"
+else
+  echo -e "  ${YELLOW}○${NC} wrangler CLI ${DIM}(recommended — npm i -g wrangler)${NC}"
+fi
+
 # Check for Claude Code (optional)
 if command -v claude &>/dev/null; then
   echo -e "  ${GREEN}✓${NC} claude code CLI"

@@ -19,8 +19,14 @@ case "$FILE_PATH" in
   *.ts|*.tsx|*.js|*.jsx|*.mts|*.cts)
     # TypeScript/JavaScript — run type-check
     ;;
-  *.py)
-    # Python — run mypy/pyright if available
+  */wrangler.toml|*/wrangler.jsonc|*/wrangler.json)
+    # Wrangler config changed — regenerate env types
+    cd "$PROJECT_ROOT"
+    if command -v wrangler &>/dev/null || [ -f "node_modules/.bin/wrangler" ]; then
+      echo "[HARNESS] Wrangler config changed, regenerating env types..." >&2
+      npx wrangler types 2>&1 | tail -5 || true
+    fi
+    exit 0
     ;;
   *)
     # Not a code file, skip
@@ -74,19 +80,6 @@ if [ -f "tsconfig.json" ] || [ -f "tsconfig.base.json" ]; then
       echo "" >&2
       echo "[HARNESS] Fix these errors before proceeding." >&2
       # Exit 2 = block, stderr shown to Claude
-      exit 2
-    fi
-  fi
-fi
-
-# Python project
-if [[ "$FILE_PATH" == *.py ]]; then
-  if command -v mypy &>/dev/null; then
-    OUTPUT=$(mypy "$FILE_PATH" 2>&1 || true)
-    EXIT_CODE=$?
-    if [ $EXIT_CODE -ne 0 ]; then
-      echo "[HARNESS] mypy errors in $FILE_PATH:" >&2
-      echo "$OUTPUT" | head -15 >&2
       exit 2
     fi
   fi

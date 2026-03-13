@@ -1,6 +1,6 @@
 {
   "name": "deploy-check",
-  "description": "Pre-deployment verification: build, tests, secrets scan, Docker check",
+  "description": "Pre-deployment verification for Cloudflare: build, tests, wrangler, D1, DO",
   "type": "hybrid",
   "triggers": ["deploy", "pre-deploy", "deploy check", "release check"]
 }

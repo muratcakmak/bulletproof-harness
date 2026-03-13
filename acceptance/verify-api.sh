@@ -17,7 +17,7 @@ TICKET_ID="${1:-}"
 TICKET_FILE="${2:-}"
 
 # Default API base URL (override with API_BASE env var)
-API_BASE="${API_BASE:-http://localhost:${PORT:-3000}}"
+API_BASE="${API_BASE:-http://localhost:${PORT:-8788}}"
 
 if [ -z "$TICKET_FILE" ] || [ ! -f "$TICKET_FILE" ]; then
   echo "[ERROR] Ticket file not found"
@@ -47,6 +47,7 @@ if [ -z "$API_CRITERIA" ]; then
 
   echo "  [api] Could not reach server at $API_BASE"
   echo "  [api] Make sure the dev server is running."
+  echo "  [api] Hint: try 'wrangler pages dev' or 'pnpm dev'"
   exit 1
 fi
 

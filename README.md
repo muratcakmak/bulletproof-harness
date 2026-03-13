@@ -2,7 +2,7 @@
 
 Autonomous ticket-driven development orchestrator for Claude Code.
 
-Turn any project into a structured, autonomous build pipeline with persistent memory, dependency-aware tickets, enforced acceptance criteria, and Claude Code hooks that prevent the model from cutting corners.
+Cloudflare-native autonomous build pipeline with persistent memory, dependency-aware tickets, enforced acceptance criteria, and Claude Code hooks. Purpose-built for Cloudflare Pages + Functions + D1 + Durable Objects projects.
 
 ## Install
 
@@ -59,7 +59,7 @@ Claude Code is powerful but unstructured. Without guardrails it declares tasks "
 
 - **Memory that survives compaction** — 4-layer file-based memory hooked into Claude Code's lifecycle
 - **Tickets with real dependencies** — state-machine queue where tickets auto-promote when deps complete
-- **Enforced acceptance criteria** — type-check, API curl, unit tests, visual screenshots, click-through verification must all pass
+- **Enforced acceptance criteria** — type-check, API curl, unit tests, visual screenshots, click-through verification, Cloudflare worker validation must all pass
 - **Stop hook** — Claude Code cannot stop until AC is verified
 - **Loop mode** — feed your entire queue through Claude Code autonomously with retries and skill injection
 
@@ -74,7 +74,8 @@ Claude Code is powerful but unstructured. Without guardrails it declares tasks "
 │   4-layer    │  state       │   build / api /     │
 │   persistent │  machine     │   unit_test /       │
 │   searchable │  with deps   │   visual /          │
-│              │              │   functional        │
+│              │              │   functional /      │
+│              │              │   worker            │
 ├──────────────┴──────────────┴────────────────────┤
 │               CLAUDE CODE HOOKS                   │
 │   SessionStart → PostToolUse → Stop → PreCompact  │
@@ -122,7 +123,7 @@ harness loop --verbose --max-retries 5
 | `refactor`     | prompt | Code cleanup and improvement suggestions          |
 | `add-tests`    | prompt | Generate comprehensive tests for existing code    |
 | `review`       | prompt | Security, performance, and style code review      |
-| `deploy-check` | hybrid | Pre-deploy: build, tests, secrets scan, Docker    |
+| `deploy-check` | hybrid | Pre-deploy: build, tests, wrangler, D1, DO         |
 
 Create your own: `harness skill create my-skill --type prompt`
 
