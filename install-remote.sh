@@ -5,7 +5,7 @@ set -euo pipefail
 # Bulletproof Harness — Remote Installer
 #
 # Install with:
-#   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/USER/bulletproof-harness/main/install-remote.sh)"
+#   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/muratcakmak/bulletproof-harness/main/install-remote.sh)"
 #
 # What it does:
 #   1. Clones the repo to ~/.bulletproof-harness
@@ -13,7 +13,7 @@ set -euo pipefail
 #   3. Optionally initializes the current directory as a harness project
 # ============================================================================
 
-REPO_URL="${HARNESS_REPO:-https://github.com/USER/bulletproof-harness.git}"
+REPO_URL="${HARNESS_REPO:-https://github.com/muratcakmak/bulletproof-harness.git}"
 INSTALL_DIR="${HARNESS_HOME:-$HOME/.bulletproof-harness}"
 BRANCH="${HARNESS_BRANCH:-main}"
 
@@ -84,11 +84,11 @@ echo -e "  ${GREEN}✓${NC} node $(node -v)"
 echo -e "  ${GREEN}✓${NC} npm $(npm -v)"
 echo -e "  ${GREEN}✓${NC} jq $(jq --version)"
 
-# Check for wrangler (recommended)
+# Check for wrangler (optional — only needed for Cloudflare projects)
 if command -v wrangler &>/dev/null; then
   echo -e "  ${GREEN}✓${NC} wrangler CLI"
 else
-  echo -e "  ${YELLOW}○${NC} wrangler CLI ${DIM}(recommended — npm i -g wrangler)${NC}"
+  echo -e "  ${YELLOW}○${NC} wrangler CLI ${DIM}(optional — only needed for Cloudflare projects)${NC}"
 fi
 
 # Check for Claude Code (optional)

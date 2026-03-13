@@ -7,7 +7,9 @@ set -euo pipefail
 # Prints the ticket content to stdout for context
 # ============================================================================
 
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HARNESS_DIR="${HARNESS_HOME:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+PROJECT_ROOT="${HARNESS_PROJECT_ROOT:-$(cd "$HARNESS_DIR/.." && pwd)}"
 TICKETS_DIR="$PROJECT_ROOT/tickets"
 QUEUE="$TICKETS_DIR/QUEUE.json"
 MEMORY_DIR="$PROJECT_ROOT/memory"
@@ -36,7 +38,7 @@ fi
 DONE_NUMS=$(jq -r '.queue[] | select(.status=="done") | .id | split("-")[0] | tonumber | tostring' "$QUEUE" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
 
 # Use bash loop for reliable dependency checking
-TEMP=$(mktemp -p "${PROJECT_ROOT}")
+TEMP=$(TMPDIR="${PROJECT_ROOT}" mktemp)
 cp "$QUEUE" "$TEMP"
 
 for ROW_IDX in $(jq -r 'range(.queue | length)' "$QUEUE"); do
@@ -91,7 +93,7 @@ fi
 
 # --- Assign the ticket ---
 NOW=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-TEMP=$(mktemp -p "${PROJECT_ROOT}")
+TEMP=$(TMPDIR="${PROJECT_ROOT}" mktemp)
 jq --arg id "$NEXT_TICKET" --arg now "$NOW" '
   .current_ticket = $id |
   (.queue[] | select(.id == $id)) |= (.status = "in_progress" | .assigned_at = $now)
@@ -116,7 +118,7 @@ echo "- [$(date -u +'%Y-%m-%d %H:%M:%S')] Started: $NEXT_TICKET" >> "$MEMORY_DIR
 echo "- [$(date -u +'%H:%M:%S')] Picked up ticket: $NEXT_TICKET" >> "$MEMORY_DIR/daily-log.md"
 
 # Update MEMORY.md active ticket
-TEMP=$(mktemp -p "${PROJECT_ROOT}")
+TEMP=$(TMPDIR="${PROJECT_ROOT}" mktemp)
 sed "s/\*\*Active Ticket:\*\*.*/\*\*Active Ticket:\*\* $NEXT_TICKET — in_progress/" "$MEMORY_DIR/MEMORY.md" > "$TEMP"
 mv "$TEMP" "$MEMORY_DIR/MEMORY.md"
 

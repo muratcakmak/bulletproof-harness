@@ -73,8 +73,8 @@ You commit after each completed ticket. If something fails after 3 retries, leav
 ## The Project
 [EDIT THIS: 2-3 sentence project description]
 
-**Tech Stack:** [EDIT THIS: e.g., TypeScript, React, Hono, Cloudflare Pages + D1 + DO, pnpm]
-**Architecture:** [EDIT THIS: e.g., Vite React on CF Pages, Hono API as Functions, D1 for DB, DOs for WebSocket]
+**Tech Stack:** [EDIT THIS: e.g., TypeScript, React, Node.js, PostgreSQL, pnpm]
+**Architecture:** [EDIT THIS: e.g., React SPA, Express API, PostgreSQL for DB, Redis for cache]
 **Deadline:** [EDIT THIS: if applicable]
 
 ## Harness System
@@ -111,12 +111,11 @@ Before finishing ANY ticket, the harness verifies:
 - `unit_test`: Specific test files pass with coverage
 - `visual`: UI renders correctly (Chrome MCP screenshot)
 - `functional`: Click-through flows work (Chrome MCP interaction)
-- `worker`: Cloudflare Worker/Pages deploy validates (wrangler types, dry-run, D1, DO)
 
 The Stop hook enforces this — you cannot declare done without passing.
 CLAUDEEOF
   # Replace PROJECT_NAME placeholder
-  sed -i "s/\[PROJECT_NAME\]/$PROJECT_NAME/g" "$PROJECT_ROOT/CLAUDE.md"
+  sed -i '' "s/\[PROJECT_NAME\]/$PROJECT_NAME/g" "$PROJECT_ROOT/CLAUDE.md"
   echo "[OK] Created CLAUDE.md (edit project details!)"
 else
   echo "[SKIP] CLAUDE.md already exists"
@@ -190,12 +189,9 @@ if [ ! -f "$PROJECT_ROOT/memory/conventions.md" ]; then
 - **Constants:** UPPER_SNAKE_CASE (e.g., MAX_RETRIES)
 - **Database tables:** snake_case plural (e.g., user_sessions)
 
-## Imports & Cloudflare Conventions
+## Imports
 - ESM only — no CommonJS (no `require()`)
-- No Node.js builtins — use Web APIs (fetch, crypto, streams, etc.)
 - Group: third-party → local modules → types
-- Secrets in `.dev.vars` (local) / `wrangler secret` (prod)
-- Access bindings via `c.env.BINDING_NAME` (Hono) or `env.BINDING_NAME` (raw worker)
 
 ## Error Handling
 [EDIT: Your error handling patterns]
@@ -287,7 +283,7 @@ Fields:
   ### Task N: Title        (required — ticket number and title)
   Summary: text            (required — what to build)
   Files: file1, file2      (optional — files to create/modify)
-  AC: type1, type2         (required — acceptance criteria types: build, api, unit_test, visual, functional, worker)
+  AC: type1, type2         (required — acceptance criteria types: build, api, unit_test, visual, functional)
   Depends: N, M            (optional — ticket numbers this depends on, or "none")
   Size: Small|Medium|Large (optional — estimated effort)
 -->
@@ -314,7 +310,7 @@ if [ ! -f "$PROJECT_ROOT/.claude/settings.json" ]; then
         "hooks": [
           {
             "type": "command",
-            "command": "bash harness/bin/session-start.sh"
+            "command": "HARNESS_PROJECT_ROOT=$PWD bash \"${HARNESS_HOME:-harness}/bin/session-start.sh\""
           }
         ]
       }
@@ -325,7 +321,7 @@ if [ ! -f "$PROJECT_ROOT/.claude/settings.json" ]; then
         "hooks": [
           {
             "type": "command",
-            "command": "bash harness/bin/post-edit-typecheck.sh"
+            "command": "HARNESS_PROJECT_ROOT=$PWD bash \"${HARNESS_HOME:-harness}/bin/post-edit-typecheck.sh\""
           }
         ]
       }
@@ -336,7 +332,7 @@ if [ ! -f "$PROJECT_ROOT/.claude/settings.json" ]; then
         "hooks": [
           {
             "type": "command",
-            "command": "bash harness/bin/pre-compact-save.sh"
+            "command": "HARNESS_PROJECT_ROOT=$PWD bash \"${HARNESS_HOME:-harness}/bin/pre-compact-save.sh\""
           }
         ]
       }
@@ -346,7 +342,7 @@ if [ ! -f "$PROJECT_ROOT/.claude/settings.json" ]; then
         "hooks": [
           {
             "type": "command",
-            "command": "bash harness/bin/stop-verify.sh"
+            "command": "HARNESS_PROJECT_ROOT=$PWD bash \"${HARNESS_HOME:-harness}/bin/stop-verify.sh\""
           }
         ]
       }

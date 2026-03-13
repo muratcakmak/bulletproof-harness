@@ -15,7 +15,9 @@ set -euo pipefail
 #   blocker       → memory/MEMORY.md (Current Blockers section)
 # ============================================================================
 
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HARNESS_DIR="${HARNESS_HOME:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+PROJECT_ROOT="${HARNESS_PROJECT_ROOT:-$(cd "$HARNESS_DIR/.." && pwd)}"
 MEMORY_DIR="$PROJECT_ROOT/memory"
 
 CATEGORY="${1:-}"
@@ -67,7 +69,7 @@ case "$CATEGORY" in
     ;;
   decision)
     # Append to Key Decisions section in MEMORY.md
-    TEMP=$(mktemp -p "${PROJECT_ROOT}")
+    TEMP=$(TMPDIR="${PROJECT_ROOT}" mktemp)
     awk -v note="$NOTE" -v ts="$TIMESTAMP" '
       /^\[Will be populated as decisions/ { print "- [" ts "] " note; next }
       /^## Key Decisions/ { print; getline; print; print "- [" ts "] " note; next }
@@ -85,7 +87,7 @@ case "$CATEGORY" in
     echo "[OK] Added decision to memory/MEMORY.md"
     ;;
   blocker)
-    TEMP=$(mktemp -p "${PROJECT_ROOT}")
+    TEMP=$(TMPDIR="${PROJECT_ROOT}" mktemp)
     awk -v note="$NOTE" -v ts="$TIMESTAMP" '
       /^\[None yet\]/ && found_blockers { print "- [" ts "] " note; next }
       /^## Current Blockers/ { found_blockers=1 }

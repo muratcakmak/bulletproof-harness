@@ -9,9 +9,11 @@ set -euo pipefail
 # Exit 0 = all pass, Exit 2 = at least one failure
 # ============================================================================
 
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HARNESS_DIR="${HARNESS_HOME:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+PROJECT_ROOT="${HARNESS_PROJECT_ROOT:-$(cd "$HARNESS_DIR/.." && pwd)}"
 TICKETS_DIR="$PROJECT_ROOT/tickets"
-ACCEPTANCE_DIR="$PROJECT_ROOT/harness/acceptance"
+ACCEPTANCE_DIR="$HARNESS_DIR/acceptance"
 
 TICKET_ID="${1:-}"
 VERBOSE="${2:-}"
@@ -40,7 +42,7 @@ echo ""
 # --- Extract unique AC types from ticket ---
 # AC lines look like: - [ ] `build`: description
 # or:                  - [x] `api`: description
-AC_TYPES=$(grep -oP '`\K[a-z_]+(?=`)' "$TICKET_FILE" | sort -u 2>/dev/null || echo "")
+AC_TYPES=$(grep -oE '`[a-z_]+`' "$TICKET_FILE" | sed 's/`//g' | sort -u 2>/dev/null || echo "")
 
 if [ -z "$AC_TYPES" ]; then
   echo "[WARN] No acceptance criteria found in ticket."

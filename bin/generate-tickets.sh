@@ -17,7 +17,9 @@ set -euo pipefail
 #   Size: Small|Medium|Large
 # ============================================================================
 
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HARNESS_DIR="${HARNESS_HOME:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+PROJECT_ROOT="${HARNESS_PROJECT_ROOT:-$(cd "$HARNESS_DIR/.." && pwd)}"
 TICKETS_DIR="$PROJECT_ROOT/tickets"
 PLAN_FILE="$TICKETS_DIR/_plan.md"
 QUEUE_FILE="$TICKETS_DIR/QUEUE.json"
@@ -143,7 +145,7 @@ $(echo -e "${FILES_SECTION:-[EDIT: list files to create/modify]}")
 TICKETEOF
 
   # Add to QUEUE.json
-  TEMP=$(mktemp -p "${PROJECT_ROOT}")
+  TEMP=$(TMPDIR="${PROJECT_ROOT}" mktemp)
   jq --arg id "$TICKET_ID" \
      --arg title "$CURRENT_TITLE" \
      --arg status "$STATUS" \

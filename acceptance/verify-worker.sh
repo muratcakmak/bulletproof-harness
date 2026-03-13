@@ -9,7 +9,9 @@ set -euo pipefail
 # Exit 0 = pass, Exit 1 = fail
 # ============================================================================
 
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HARNESS_DIR="${HARNESS_HOME:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+PROJECT_ROOT="${HARNESS_PROJECT_ROOT:-$(cd "$HARNESS_DIR/.." && pwd)}"
 TICKET_ID="${1:-}"
 TICKET_FILE="${2:-}"
 
@@ -100,9 +102,9 @@ if grep -q "durable_objects" "$WRANGLER_CONFIG" 2>/dev/null || grep -q '"durable
   # Extract class names from wrangler config
   DO_CLASSES=""
   if [[ "$WRANGLER_CONFIG" == *.toml ]]; then
-    DO_CLASSES=$(grep -oP 'class_name\s*=\s*"\K[^"]+' "$WRANGLER_CONFIG" 2>/dev/null || echo "")
+    DO_CLASSES=$(grep -oE 'class_name[[:space:]]*=[[:space:]]*"[^"]+"' "$WRANGLER_CONFIG" 2>/dev/null | sed 's/.*"\([^"]*\)"$/\1/' || echo "")
   else
-    DO_CLASSES=$(grep -oP '"class_name"\s*:\s*"\K[^"]+' "$WRANGLER_CONFIG" 2>/dev/null || echo "")
+    DO_CLASSES=$(grep -oE '"class_name"[[:space:]]*:[[:space:]]*"[^"]+"' "$WRANGLER_CONFIG" 2>/dev/null | sed 's/.*"\([^"]*\)"$/\1/' || echo "")
   fi
 
   if [ -n "$DO_CLASSES" ]; then

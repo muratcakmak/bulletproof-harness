@@ -7,7 +7,9 @@ set -euo pipefail
 # Runs the project's test suite or specific test files mentioned in the ticket
 # ============================================================================
 
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HARNESS_DIR="${HARNESS_HOME:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+PROJECT_ROOT="${HARNESS_PROJECT_ROOT:-$(cd "$HARNESS_DIR/.." && pwd)}"
 TICKET_ID="${1:-}"
 TICKET_FILE="${2:-}"
 
@@ -31,7 +33,7 @@ fi
 # --- Extract specific test files from ticket (if mentioned) ---
 SPECIFIC_TESTS=""
 if [ -n "$TICKET_FILE" ] && [ -f "$TICKET_FILE" ]; then
-  SPECIFIC_TESTS=$(grep -oP '\S+\.(test|spec)\.(ts|tsx|js|jsx)' "$TICKET_FILE" 2>/dev/null | sort -u || echo "")
+  SPECIFIC_TESTS=$(grep -oE '[^[:space:]]+\.(test|spec)\.(ts|tsx|js|jsx)' "$TICKET_FILE" 2>/dev/null | sort -u || echo "")
 fi
 
 echo "  [unit_test] Running tests..."

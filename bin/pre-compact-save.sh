@@ -7,7 +7,9 @@ set -euo pipefail
 # Purpose: Archive daily log + snapshot current state so nothing is lost
 # ============================================================================
 
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HARNESS_DIR="${HARNESS_HOME:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+PROJECT_ROOT="${HARNESS_PROJECT_ROOT:-$(cd "$HARNESS_DIR/.." && pwd)}"
 MEMORY_DIR="$PROJECT_ROOT/memory"
 ARCHIVE_DIR="$MEMORY_DIR/archives"
 QUEUE="$PROJECT_ROOT/tickets/QUEUE.json"
@@ -43,7 +45,7 @@ if [ -f "$QUEUE" ]; then
   # Update the status section in MEMORY.md
   if [ -f "$MEMORY_DIR/MEMORY.md" ]; then
     # Use a temp file for safe in-place edit
-    TEMP=$(mktemp -p "${PROJECT_ROOT}")
+    TEMP=$(TMPDIR="${PROJECT_ROOT}" mktemp)
     awk -v ticket="$CURRENT_TICKET" -v done="$DONE_COUNT" -v total="$TOTAL_COUNT" -v ts="$(date -u +'%Y-%m-%d %H:%M:%S UTC')" '
       /^- \*\*Active Ticket:\*\*/ { print "- **Active Ticket:** " ticket; next }
       /^- \*\*Last Updated:\*\*/ { print "- **Last Updated:** " ts; next }
@@ -55,7 +57,7 @@ fi
 
 # --- Sync progress.md with QUEUE.json ---
 if [ -f "$QUEUE" ] && [ -f "$MEMORY_DIR/progress.md" ]; then
-  TEMP=$(mktemp -p "${PROJECT_ROOT}")
+  TEMP=$(TMPDIR="${PROJECT_ROOT}" mktemp)
   cat > "$TEMP" << 'EOF'
 # Progress Tracker
 

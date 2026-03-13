@@ -9,7 +9,9 @@ set -euo pipefail
 # Flow: verify AC → archive ticket → update queue → update memory → next ticket
 # ============================================================================
 
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HARNESS_DIR="${HARNESS_HOME:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+PROJECT_ROOT="${HARNESS_PROJECT_ROOT:-$(cd "$HARNESS_DIR/.." && pwd)}"
 TICKETS_DIR="$PROJECT_ROOT/tickets"
 QUEUE="$TICKETS_DIR/QUEUE.json"
 MEMORY_DIR="$PROJECT_ROOT/memory"
@@ -40,7 +42,7 @@ echo ""
 
 # --- Step 1: Run acceptance verification ---
 echo "[1/4] Running acceptance verification..."
-VERIFY_SCRIPT="$PROJECT_ROOT/harness/acceptance/verify-all.sh"
+VERIFY_SCRIPT="$HARNESS_DIR/acceptance/verify-all.sh"
 
 if [ -f "$VERIFY_SCRIPT" ]; then
   if ! bash "$VERIFY_SCRIPT" "$TICKET_ID"; then
@@ -61,7 +63,7 @@ mkdir -p "$TICKETS_DIR/completed"
 cp "$TICKET_FILE" "$TICKETS_DIR/completed/$TICKET_ID.md"
 
 # Mark all AC as checked in the archived copy
-sed -i 's/- \[ \] /- [x] /g' "$TICKETS_DIR/completed/$TICKET_ID.md"
+sed -i '' 's/- \[ \] /- [x] /g' "$TICKETS_DIR/completed/$TICKET_ID.md"
 
 # Remove from active tickets (use mv as fallback if rm fails in sandboxed environments)
 rm "$TICKET_FILE" 2>/dev/null || mv "$TICKET_FILE" "$TICKETS_DIR/completed/.original-$TICKET_ID.md" 2>/dev/null || echo "[WARN] Could not remove original ticket file (sandbox restriction)"
@@ -71,7 +73,7 @@ echo ""
 # --- Step 3: Update QUEUE.json ---
 echo "[3/4] Updating queue..."
 NOW=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-TEMP=$(mktemp -p "${PROJECT_ROOT}")
+TEMP=$(TMPDIR="${PROJECT_ROOT}" mktemp)
 
 # Get ticket title for progress log
 TICKET_TITLE=$(jq -r --arg id "$TICKET_ID" '.queue[] | select(.id==$id) | .title // $id' "$QUEUE" 2>/dev/null || echo "$TICKET_ID")
@@ -104,7 +106,7 @@ echo "[4/4] Updating memory..."
 echo "- [$(date -u +'%H:%M:%S')] Completed ticket: $TICKET_ID ($TICKET_TITLE)" >> "$MEMORY_DIR/daily-log.md"
 
 # Update MEMORY.md
-TEMP=$(mktemp -p "${PROJECT_ROOT}")
+TEMP=$(TMPDIR="${PROJECT_ROOT}" mktemp)
 sed "s/\*\*Active Ticket:\*\*.*/\*\*Active Ticket:\*\* None — run next-ticket.sh/" "$MEMORY_DIR/MEMORY.md" > "$TEMP"
 mv "$TEMP" "$MEMORY_DIR/MEMORY.md"
 
